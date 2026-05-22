@@ -68,7 +68,7 @@ const Timetable = () => {
     };
 
     localStorage.setItem("timetable", JSON.stringify(data));
-    saveToHistory("Timetable", schedule);
+    saveToHistory("Timetable", "saved", `Timetable for ${month} was saved.`);
     setShowPreview(true);
     alert("Timetable saved locally ✅");
   };

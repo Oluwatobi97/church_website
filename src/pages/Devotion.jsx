@@ -5,7 +5,8 @@ import { saveToHistory } from "../utils/history";
 
 const Devotion = () => {
   const navigate = useNavigate();
-  const userRole = "admin"; // change to: "member" or "council"
+  const userRole = localStorage.getItem("userRole");
+  const isEditable = userRole === "admin" || userRole === "council";
 
   const [devotions, setDevotions] = useState([
     {
@@ -25,9 +26,8 @@ const Devotion = () => {
   };
 
   const handleAdd = () => {
-    const newDevotion = formData;
-    setDevotions([...devotions, newDevotion]);
-    saveToHistory("Devotion", newDevotion);
+    setDevotions([...devotions, { ...formData }]);
+    saveToHistory("Devotion", "added", `Added devotion: ${formData.title}`);
     setFormData({ title: "", content: "" });
     setShowForm(false);
   };
@@ -52,7 +52,7 @@ const Devotion = () => {
           </button>
         </div>
 
-        {(userRole === "admin" || userRole === "council") && (
+        {isEditable && (
           <button
             onClick={() => setShowForm(true)}
             className="mb-4 bg-blue-500 text-white px-4 py-2 rounded"
@@ -66,7 +66,7 @@ const Devotion = () => {
             <h2 className="font-bold">{item.title}</h2>
             <p className="text-gray-600">{item.content}</p>
 
-            {(userRole === "admin" || userRole === "council") && (
+            {isEditable && (
               <button
                 onClick={() => handleDelete(index)}
                 className="text-red-500 mt-2"
@@ -84,6 +84,7 @@ const Devotion = () => {
 
               <input
                 name="title"
+                value={formData.title}
                 placeholder="Title"
                 className="w-full mb-2 p-2 border"
                 onChange={handleChange}
@@ -91,6 +92,7 @@ const Devotion = () => {
 
               <textarea
                 name="content"
+                value={formData.content}
                 placeholder="Content"
                 className="w-full mb-2 p-2 border"
                 onChange={handleChange}

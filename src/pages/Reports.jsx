@@ -1,10 +1,13 @@
 import Sidebar from "../components/Sidebar";
 import { useState, useEffect } from "react";
-import { Download } from "lucide-react";
+import { Download, Loader2, RefreshCw } from "lucide-react";
+import { financeAPI, attendanceAPI } from "../services/api";
 
 const Reports = () => {
   const userRole = localStorage.getItem("userRole");
   const [reportData, setReportData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Get church schedule (static or from timetable data)
   const getChurchSchedule = () => {
@@ -15,82 +18,101 @@ const Reports = () => {
     ];
   };
 
-  // Calculate attendance averages
-  const getAttendanceAverages = () => {
+  // Load all report data from backend APIs
+  const loadReportData = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const saved = localStorage.getItem("attendance");
-      if (!saved) return null;
+      const [incomeRes, expensesRes, balanceRes, attendanceRes] =
+        await Promise.all([
+          financeAPI.getIncome(),
+          financeAPI.getExpenses(),
+          financeAPI.getBalance(),
+          attendanceAPI.getAll(),
+        ]);
 
-      const parsed = JSON.parse(saved);
-      const days = ["Tuesday", "Friday", "Sunday"];
+      const incomeRecords = incomeRes?.data || incomeRes || [];
+      const expenseRecords = expensesRes?.data || expensesRes || [];
+      const balanceRecords = balanceRes?.data || balanceRes || [];
+      const attendanceRecords = attendanceRes?.data || attendanceRes || [];
 
-      const averages = days.map((day) => {
-        const dayData = parsed.attendance?.[day];
-        const adults = parseInt(dayData?.adults) || 0;
-        const children = parseInt(dayData?.children) || 0;
-        const total = adults + children;
+      // Calculate Finance Summary
+      const totalIncome = incomeRecords.reduce(
+        (sum, item) => sum + (parseFloat(item.amount) || 0),
+        0,
+      );
+      const totalExpenses = expenseRecords.reduce(
+        (sum, item) => sum + (parseFloat(item.amount) || 0),
+        0,
+      );
+      const carriedDown = balanceRecords.reduce(
+        (sum, item) => sum + (parseFloat(item.balance_carried_down) || 0),
+        0,
+      );
+      const balanceInBank = totalIncome - totalExpenses + carriedDown;
 
+      const financeSummary = {
+        incomeBreakdown: incomeRecords.map((item) => ({
+          category: item.category,
+          amount: parseFloat(item.amount) || 0,
+        })),
+        expensesBreakdown: expenseRecords.map((item) => ({
+          category: item.category,
+          amount: parseFloat(item.amount) || 0,
+        })),
+        totalIncome,
+        totalExpenses,
+        carriedDown,
+        balanceInBank,
+      };
+
+      // Calculate Attendance Averages
+      const standardDays = ["Tuesday", "Friday", "Sunday"];
+      const attendanceAggregates = {};
+
+      standardDays.forEach((day) => {
+        attendanceAggregates[day] = { adultsSum: 0, childrenSum: 0, count: 0 };
+      });
+
+      attendanceRecords.forEach((record) => {
+        const day = record.day;
+        // Only consider standard days for averages
+        if (standardDays.includes(day)) {
+          attendanceAggregates[day].adultsSum +=
+            parseFloat(record.total_adults) || 0;
+          attendanceAggregates[day].childrenSum +=
+            parseFloat(record.total_children) || 0;
+          attendanceAggregates[day].count++;
+        }
+      });
+
+      const averagedAttendance = standardDays.map((day) => {
+        const { adultsSum, childrenSum, count } = attendanceAggregates[day];
+        const adults = count > 0 ? Math.round(adultsSum / count) : 0;
+        const children = count > 0 ? Math.round(childrenSum / count) : 0;
         return {
           day,
           adults,
           children,
-          total,
+          total: adults + children,
         };
       });
 
-      return averages;
-    } catch {
-      return null;
+      // Get static schedule
+      const schedule = getChurchSchedule();
+
+      setReportData({
+        generatedDate: new Date().toLocaleDateString(),
+        schedule,
+        attendance: averagedAttendance,
+        finance: financeSummary,
+      });
+    } catch (err) {
+      console.error("Report Error:", err);
+      setError(err.message || "Failed to load report data");
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  // Get income and expense summary
-  const getFinanceSummary = () => {
-    try {
-      const income = localStorage.getItem("financeIncome");
-      const expenses = localStorage.getItem("financeExpenses");
-      const balance = localStorage.getItem("financeBalance");
-
-      const incomeData = income ? JSON.parse(income) : [];
-      const expenseData = expenses ? JSON.parse(expenses) : [];
-
-      const totalIncome = incomeData.reduce(
-        (sum, item) => sum + (parseFloat(item.amount) || 0),
-        0
-      );
-
-      const totalExpenses = expenseData.reduce(
-        (sum, item) => sum + (parseFloat(item.amount) || 0),
-        0
-      );
-
-      const carriedDown = parseFloat(balance) || 0;
-
-      return {
-        incomeBreakdown: incomeData,
-        expensesBreakdown: expenseData,
-        totalIncome,
-        totalExpenses,
-        carriedDown,
-        balanceInBank: totalIncome - totalExpenses + carriedDown,
-      };
-    } catch {
-      return null;
-    }
-  };
-
-  // Generate report data
-  const generateReport = () => {
-    const schedule = getChurchSchedule();
-    const attendance = getAttendanceAverages();
-    const finance = getFinanceSummary();
-
-    setReportData({
-      generatedDate: new Date().toLocaleDateString(),
-      schedule,
-      attendance: attendance || [],
-      finance: finance || {},
-    });
   };
 
   // Export to Excel using SheetJS
@@ -141,11 +163,7 @@ const Reports = () => {
         ["Balance in Bank", reportData.finance.balanceInBank || 0],
       ];
       const financeSummarySheet = XLSX.utils.aoa_to_sheet(financeSummaryData);
-      XLSX.utils.book_append_sheet(
-        wb,
-        financeSummarySheet,
-        "Finance Summary"
-      );
+      XLSX.utils.book_append_sheet(wb, financeSummarySheet, "Finance Summary");
 
       // Sheet 4: Detailed Income
       if (reportData.finance.incomeBreakdown?.length > 0) {
@@ -185,8 +203,54 @@ const Reports = () => {
   };
 
   useEffect(() => {
-    generateReport();
+    loadReportData();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex bg-gray-100 min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-500">
+            <Loader2 className="animate-spin" size={36} />
+            <p className="text-sm">Loading report data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex bg-gray-100 min-h-screen">
+        <Sidebar />
+        <div className="p-6 w-full">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Reports</h1>
+          </div>
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {error}</span>
+            <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
+              <svg
+                onClick={() => setError(null)}
+                className="fill-current h-6 w-6 text-red-500 cursor-pointer"
+                role="button"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <title>Close</title>
+                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
@@ -194,14 +258,32 @@ const Reports = () => {
 
       <div className="p-6 w-full">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <button
-            onClick={exportToExcel}
-            className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
-          >
-            <Download size={18} />
-            Export to Excel
-          </button>
+          <h1 className="text-2xl font-bold">Comprehensive Reports</h1>
+          <div className="flex gap-3">
+            <button
+              onClick={loadReportData}
+              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <RefreshCw size={18} />
+              )}
+              Refresh
+            </button>
+
+            {(userRole === "admin" || userRole === "council") && (
+              <button
+                onClick={exportToExcel}
+                className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
+                disabled={!reportData}
+              >
+                <Download size={18} />
+                Export to Excel
+              </button>
+            )}
+          </div>
         </div>
 
         {reportData && (
@@ -248,7 +330,9 @@ const Reports = () => {
                     {reportData.attendance.map((item, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
                         <td className="border p-3">{item.day}</td>
-                        <td className="border p-3 text-center">{item.adults}</td>
+                        <td className="border p-3 text-center">
+                          {item.adults}
+                        </td>
                         <td className="border p-3 text-center">
                           {item.children}
                         </td>
@@ -309,16 +393,14 @@ const Reports = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.finance.incomeBreakdown.map(
-                          (item, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50">
-                              <td className="border p-3">{item.category}</td>
-                              <td className="border p-3 text-right">
-                                ₦{parseFloat(item.amount || 0).toLocaleString()}
-                              </td>
-                            </tr>
-                          )
-                        )}
+                        {reportData.finance.incomeBreakdown.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="border p-3">{item.category}</td>
+                            <td className="border p-3 text-right">
+                              ₦{parseFloat(item.amount || 0).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -346,7 +428,7 @@ const Reports = () => {
                                 ₦{parseFloat(item.amount || 0).toLocaleString()}
                               </td>
                             </tr>
-                          )
+                          ),
                         )}
                       </tbody>
                     </table>

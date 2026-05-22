@@ -1,7 +1,9 @@
 import Sidebar from "../components/Sidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveToHistory } from "../utils/history";
+import { attendanceAPI } from "../services/api";
+import { Loader2 } from "lucide-react";
 
 const createEmptyDay = () => ({
   adults: "",
@@ -17,44 +19,73 @@ const createEmptyAttendance = () => ({
   Sunday: createEmptyDay(),
 });
 
-const getWeekKey = () => {
+const getWeekStarting = () => {
   const now = new Date();
-
-  const firstDay = new Date(now.setDate(now.getDate() - now.getDay() + 1));
-  const lastDay = new Date(firstDay);
-  lastDay.setDate(firstDay.getDate() + 6);
-
-  return `${firstDay.toDateString()} - ${lastDay.toDateString()}`;
-};
-
-const getInitialAttendanceState = () => {
-  const base = {
-    attendance: createEmptyAttendance(),
-    specialFields: [],
-  };
-
-  try {
-    const saved = localStorage.getItem("attendance");
-    if (!saved) return base;
-
-    const parsed = JSON.parse(saved);
-    if (parsed.week !== getWeekKey()) return base;
-
-    return {
-      attendance: parsed.attendance ?? base.attendance,
-      specialFields: parsed.specialFields ?? [],
-    };
-  } catch {
-    return base;
-  }
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now);
+  monday.setDate(diff);
+  return monday.toISOString().split("T")[0];
 };
 
 const Attendance = () => {
   const navigate = useNavigate();
   const days = ["Tuesday", "Friday", "Sunday"];
-  const initialState = getInitialAttendanceState();
-  const [attendance, setAttendance] = useState(initialState.attendance);
-  const [specialFields, setSpecialFields] = useState(initialState.specialFields);
+  const weekStarting = getWeekStarting();
+
+  const [attendance, setAttendance] = useState(createEmptyAttendance());
+  const [specialFields, setSpecialFields] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const res = await attendanceAPI.getAll(weekStarting);
+      const records = res?.data || res || [];
+
+      // Map records to state
+      const newAttendance = createEmptyAttendance();
+      const newSpecials = [];
+
+      records.forEach((rec) => {
+        if (rec.special_programme) {
+          newSpecials.push({
+            id: rec.id,
+            name: rec.special_programme,
+            adults: rec.total_adults || "",
+            children: rec.total_children || "",
+            offering: rec.total_offering || "",
+            newcomers: rec.total_newcomers || "",
+            tithes: rec.total_tithes || "",
+          });
+        } else if (newAttendance[rec.day]) {
+          newAttendance[rec.day] = {
+            id: rec.id,
+            adults: rec.total_adults || "",
+            children: rec.total_children || "",
+            offering: rec.total_offering || "",
+            newcomers: rec.total_newcomers || "",
+            tithes: rec.total_tithes || "",
+          };
+        }
+      });
+
+      setAttendance(newAttendance);
+      setSpecialFields(newSpecials);
+    } catch (err) {
+      setError(
+        err.message || "Failed to load attendance records. Please refresh.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleChange = (day, field, value) => {
     setAttendance({
@@ -86,21 +117,63 @@ const Attendance = () => {
     ]);
   };
 
-  const handleSubmit = () => {
-    const weekKey = getWeekKey();
+  const handleSubmit = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const promises = [];
 
-    const data = {
-      week: weekKey,
-      attendance,
-      specialFields,
-    };
+      // 1. Loop Tuesday, Friday, Sunday
+      days.forEach((day) => {
+        const data = attendance[day];
+        if (
+          data.adults ||
+          data.children ||
+          data.offering ||
+          data.newcomers ||
+          data.tithes
+        ) {
+          promises.push(
+            attendanceAPI.create(
+              day,
+              weekStarting,
+              Number(data.adults) || 0,
+              Number(data.children) || 0,
+              Number(data.offering) || 0,
+              Number(data.tithes) || 0,
+              Number(data.newcomers) || 0,
+              null, // specialProgramme is null for standard days
+            ),
+          );
+        }
+      });
 
-    localStorage.setItem("attendance", JSON.stringify(data));
-    saveToHistory("Attendance", {
-      attendance,
-      specialFields,
-    });
-    alert("Attendance saved successfully ✅");
+      // 2. Prepare special programs
+      specialFields.forEach((field) => {
+        if (!field.name) return;
+        promises.push(
+          attendanceAPI.create(
+            field.name, // day = programme name per instruction
+            weekStarting,
+            Number(field.adults) || 0,
+            Number(field.children) || 0,
+            Number(field.offering) || 0,
+            Number(field.tithes) || 0,
+            Number(field.newcomers) || 0,
+            field.name,
+          ),
+        );
+      });
+
+      await Promise.all(promises);
+      saveToHistory("attendance", "saved", "Updated weekly attendance records");
+      alert("Attendance saved successfully ✅");
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Failed to save attendance.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const calculateTotals = () => {
@@ -133,6 +206,20 @@ const Attendance = () => {
 
   const totals = calculateTotals();
 
+  if (loading) {
+    return (
+      <div className="flex bg-gray-100 min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-500">
+            <Loader2 className="animate-spin" size={36} />
+            <p className="text-sm">Loading attendance data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex bg-gray-100 min-h-screen">
       <Sidebar />
@@ -148,6 +235,15 @@ const Attendance = () => {
           </button>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+            ❌ {error}
+            <button onClick={() => setError(null)} className="ml-3 underline">
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* WEEKLY DAYS */}
         {days.map((day) => (
           <div key={day} className="bg-white p-4 mb-4 rounded shadow">
@@ -158,6 +254,7 @@ const Attendance = () => {
                 placeholder="Adults"
                 className="border p-2"
                 value={attendance[day].adults}
+                disabled={saving}
                 onChange={(e) => handleChange(day, "adults", e.target.value)}
               />
 
@@ -165,6 +262,7 @@ const Attendance = () => {
                 placeholder="Children"
                 className="border p-2"
                 value={attendance[day].children}
+                disabled={saving}
                 onChange={(e) => handleChange(day, "children", e.target.value)}
               />
 
@@ -172,6 +270,7 @@ const Attendance = () => {
                 placeholder="Offering"
                 className="border p-2"
                 value={attendance[day].offering}
+                disabled={saving}
                 onChange={(e) => handleChange(day, "offering", e.target.value)}
               />
 
@@ -179,6 +278,7 @@ const Attendance = () => {
                 placeholder="Newcomers"
                 className="border p-2"
                 value={attendance[day].newcomers}
+                disabled={saving}
                 onChange={(e) => handleChange(day, "newcomers", e.target.value)}
               />
 
@@ -186,6 +286,7 @@ const Attendance = () => {
                 placeholder="Tithes"
                 className="border p-2"
                 value={attendance[day].tithes}
+                disabled={saving}
                 onChange={(e) => handleChange(day, "tithes", e.target.value)}
               />
             </div>
@@ -209,6 +310,7 @@ const Attendance = () => {
                 placeholder="Program Name (e.g Revival)"
                 className="w-full mb-2 p-2 border"
                 value={item.name}
+                disabled={saving}
                 onChange={(e) =>
                   handleSpecialChange(index, "name", e.target.value)
                 }
@@ -219,6 +321,7 @@ const Attendance = () => {
                   placeholder="Adults"
                   className="border p-2"
                   value={item.adults}
+                  disabled={saving}
                   onChange={(e) =>
                     handleSpecialChange(index, "adults", e.target.value)
                   }
@@ -227,6 +330,7 @@ const Attendance = () => {
                   placeholder="Children"
                   className="border p-2"
                   value={item.children}
+                  disabled={saving}
                   onChange={(e) =>
                     handleSpecialChange(index, "children", e.target.value)
                   }
@@ -235,6 +339,7 @@ const Attendance = () => {
                   placeholder="Offering"
                   className="border p-2"
                   value={item.offering}
+                  disabled={saving}
                   onChange={(e) =>
                     handleSpecialChange(index, "offering", e.target.value)
                   }
@@ -243,6 +348,7 @@ const Attendance = () => {
                   placeholder="Newcomers"
                   className="border p-2"
                   value={item.newcomers}
+                  disabled={saving}
                   onChange={(e) =>
                     handleSpecialChange(index, "newcomers", e.target.value)
                   }
@@ -251,6 +357,7 @@ const Attendance = () => {
                   placeholder="Tithes"
                   className="border p-2"
                   value={item.tithes}
+                  disabled={saving}
                   onChange={(e) =>
                     handleSpecialChange(index, "tithes", e.target.value)
                   }
@@ -262,9 +369,11 @@ const Attendance = () => {
 
         <button
           onClick={handleSubmit}
-          className="mt-6 bg-green-600 text-white px-6 py-2 rounded"
+          disabled={saving}
+          className="mt-6 bg-green-600 text-white px-6 py-2 rounded flex items-center gap-2 disabled:opacity-50"
         >
-          Submit Attendance
+          {saving && <Loader2 className="animate-spin" size={18} />}
+          {saving ? "Saving..." : "Submit Attendance"}
         </button>
 
         <div className="mt-6 bg-white p-4 rounded shadow">

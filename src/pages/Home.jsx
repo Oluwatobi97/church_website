@@ -9,11 +9,11 @@ const Home = () => {
         <h1 className="text-xl font-bold">Church</h1>
 
         <div className="space-x-6 hidden md:block">
-          <a href="#">Home</a>
-          <a href="#">Daily-Devotion</a>
-          <a href="#">Announcements</a>
-          <a href="#">Contact</a>
-          <a href="#">About</a>
+          <a href="/">Home</a>
+          <a href="/daily-devotion">Daily-Devotion</a>
+          <a href="/announcements">Announcements</a>
+          <a href="/contact">Contact</a>
+          <a href="/about">About</a>
         </div>
 
         <Link to="/login" className="bg-orange-500 px-4 py-2 rounded">
