@@ -56,9 +56,10 @@ export const authAPI = {
   register: (name, email, password, role) =>
     apiCall("POST", "/auth/register", { name, email, password, role }),
 
-  login: (email, password) =>
-    apiCall("POST", "/auth/login", { email, password }),
-
+  login: (email, password) => {
+    console.log("Attempting login with:", { email, password });
+    apiCall("POST", "/auth/login", { email, password });
+  },
   refreshToken: (refreshToken) =>
     apiCall("POST", "/auth/refresh-token", { refreshToken }),
 };
