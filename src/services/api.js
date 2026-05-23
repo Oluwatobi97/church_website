@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL || "https://church-website-k5rp.onrender.com";
 let accessToken = localStorage.getItem("accessToken");
 
 export const setAuthToken = (token) => {
