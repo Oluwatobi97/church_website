@@ -4,7 +4,7 @@ import { authAPI, setAuthToken } from "../services/api";
 
 const Login = () => {
   const [email, setEmail] = useState("admin@church.com");
-  const [password, setPassword] = useState("demo123");
+  const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -86,9 +86,15 @@ const Login = () => {
         <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
           <strong>Demo Credentials:</strong>
           <div className="mt-2 space-y-1">
-            <p>👤 <strong>Admin:</strong> admin@church.com / demo123</p>
-            <p>👥 <strong>Council:</strong> council@church.com / demo123</p>
-            <p>📖 <strong>Member:</strong> member@church.com / demo123</p>
+            <p>
+              👤 <strong>Admin:</strong> admin@church.com / demo123
+            </p>
+            <p>
+              👥 <strong>Council:</strong> council@church.com / demo123
+            </p>
+            <p>
+              📖 <strong>Member:</strong> member@church.com / demo123
+            </p>
           </div>
         </div>
       </div>
