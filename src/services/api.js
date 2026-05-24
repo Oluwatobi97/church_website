@@ -1,5 +1,6 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://church-website-k5rp.onrender.com";
+  import.meta.env.VITE_API_URL ||
+  "https://church-backend-8cal.onrender.com/api";
 let accessToken = localStorage.getItem("accessToken");
 
 export const setAuthToken = (token) => {
@@ -31,7 +32,6 @@ const apiCall = async (method, endpoint, data = null) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
 
     if (response.status === 401) {
-      // Token expired - redirect to login
       localStorage.removeItem("accessToken");
       localStorage.removeItem("userRole");
       window.location.href = "/login";
@@ -58,6 +58,7 @@ export const authAPI = {
 
   login: (email, password) =>
     apiCall("POST", "/auth/login", { email, password }),
+
   refreshToken: (refreshToken) =>
     apiCall("POST", "/auth/refresh-token", { refreshToken }),
 };
