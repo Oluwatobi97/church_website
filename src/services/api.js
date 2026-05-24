@@ -1,6 +1,6 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
-  "https://church-backend-8cal.onrender.com/api";
+  "church-backend-8cal.onrender.com/api/auth/login ✅i";
 let accessToken = localStorage.getItem("accessToken");
 
 export const setAuthToken = (token) => {
