@@ -1,9 +1,23 @@
-import Sidebar from "../components/Sidebar";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { saveToHistory } from "../utils/history";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Menu,
+  Plus,
+  X,
+  Users,
+  Baby,
+  Coins,
+  Wallet,
+  UserPlus,
+  Loader2,
+  Save,
+  Calendar,
+} from "lucide-react";
+import { saveToHistory } from "../utils/helpers.js";
 import { attendanceAPI } from "../services/api";
-import { Loader2 } from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 
 const createEmptyDay = () => ({
   adults: "",
@@ -32,12 +46,15 @@ const Attendance = () => {
   const navigate = useNavigate();
   const days = ["Tuesday", "Friday", "Sunday"];
   const weekStarting = getWeekStarting();
+  const userName = localStorage.getItem("userName") || "Admin";
 
   const [attendance, setAttendance] = useState(createEmptyAttendance());
   const [specialFields, setSpecialFields] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("Tuesday");
 
   const loadData = async () => {
     setLoading(true);
@@ -115,6 +132,12 @@ const Attendance = () => {
         tithes: "",
       },
     ]);
+  };
+
+  const removeSpecialField = (index) => {
+    const updated = [...specialFields];
+    updated.splice(index, 1);
+    setSpecialFields(updated);
   };
 
   const handleSubmit = async () => {
@@ -208,185 +231,418 @@ const Attendance = () => {
 
   if (loading) {
     return (
-      <div className="flex bg-gray-100 min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-500">
-            <Loader2 className="animate-spin" size={36} />
-            <p className="text-sm">Loading attendance data...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-emerald-600">
+          <Loader2 className="animate-spin" size={48} />
+          <p className="text-sm font-medium text-gray-500">
+            Loading attendance data...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-      <Sidebar />
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <div className="p-6 w-full">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">Weekly Attendance</h1>
+      <main className="flex-1 lg:ml-[250px] pb-24 lg:pb-8 min-w-0">
+        {/* Mobile Header */}
+        <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-gray-100 h-16 flex items-center justify-between px-4">
           <button
-            onClick={() => navigate("/dashboard")}
-            className="bg-gray-600 text-white px-4 py-2 rounded"
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-xl hover:bg-gray-100"
           >
-            Dashboard
+            <Menu size={24} className="text-gray-600" />
           </button>
-        </div>
+          <span className="font-bold text-emerald-700 text-lg">Attendance</span>
+          <div className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+            {userName[0]?.toUpperCase()}
+          </div>
+        </header>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
-            ❌ {error}
-            <button onClick={() => setError(null)} className="ml-3 underline">
-              Dismiss
+        <div className="px-4 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
+          {/* Page Header (Desktop) */}
+          <div className="hidden lg:flex items-center justify-between">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <h1 className="text-3xl font-bold text-gray-900">
+                Weekly Attendance
+              </h1>
+              <p className="text-gray-500 flex items-center gap-2 mt-1 font-medium">
+                <Calendar size={16} className="text-emerald-600" />
+                Week Starting:{" "}
+                {new Date(weekStarting).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            </motion.div>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-100 flex items-center gap-2 disabled:opacity-50"
+            >
+              {saving ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <Save size={20} />
+              )}
+              Submit Records
             </button>
           </div>
-        )}
 
-        {/* WEEKLY DAYS */}
-        {days.map((day) => (
-          <div key={day} className="bg-white p-4 mb-4 rounded shadow">
-            <h2 className="font-bold mb-3">{day}</h2>
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0, x: [0, -10, 10, -10, 10, 0] }}
+                exit={{ opacity: 0, y: -20 }}
+                className="p-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl flex items-center justify-between shadow-sm"
+              >
+                <span className="font-medium">❌ {error}</span>
+                <button
+                  onClick={() => setError(null)}
+                  className="p-1 hover:bg-red-100 rounded-lg"
+                >
+                  <X size={18} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            <div className="grid grid-cols-5 gap-3">
-              <input
-                placeholder="Adults"
-                className="border p-2"
-                value={attendance[day].adults}
-                disabled={saving}
-                onChange={(e) => handleChange(day, "adults", e.target.value)}
-              />
-
-              <input
-                placeholder="Children"
-                className="border p-2"
-                value={attendance[day].children}
-                disabled={saving}
-                onChange={(e) => handleChange(day, "children", e.target.value)}
-              />
-
-              <input
-                placeholder="Offering"
-                className="border p-2"
-                value={attendance[day].offering}
-                disabled={saving}
-                onChange={(e) => handleChange(day, "offering", e.target.value)}
-              />
-
-              <input
-                placeholder="Newcomers"
-                className="border p-2"
-                value={attendance[day].newcomers}
-                disabled={saving}
-                onChange={(e) => handleChange(day, "newcomers", e.target.value)}
-              />
-
-              <input
-                placeholder="Tithes"
-                className="border p-2"
-                value={attendance[day].tithes}
-                disabled={saving}
-                onChange={(e) => handleChange(day, "tithes", e.target.value)}
-              />
-            </div>
+          {/* Mobile Tabs */}
+          <div className="lg:hidden flex p-1 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            {days.map((day) => (
+              <button
+                key={day}
+                onClick={() => setActiveTab(day)}
+                className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+                  activeTab === day
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "text-gray-500"
+                }`}
+              >
+                {day.substring(0, 3)}
+              </button>
+            ))}
           </div>
-        ))}
 
-        {/* SPECIAL PROGRAM */}
-        <div className="bg-white p-4 rounded shadow mt-6">
-          <h2 className="font-bold mb-3">Special Programs</h2>
-
-          <button
-            onClick={addSpecialField}
-            className="mb-4 bg-blue-500 text-white px-4 py-2 rounded"
+          {/* Content Area */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
           >
-            + Create Field
-          </button>
+            {/* Standard Days Grid */}
+            <div className="hidden lg:grid grid-cols-3 gap-6">
+              {days.map((day, idx) => (
+                <DayCard
+                  key={day}
+                  day={day}
+                  data={attendance[day]}
+                  idx={idx}
+                  handleChange={handleChange}
+                  saving={saving}
+                />
+              ))}
+            </div>
 
-          {specialFields.map((item, index) => (
-            <div key={index} className="mb-4 border p-3 rounded">
-              <input
-                placeholder="Program Name (e.g Revival)"
-                className="w-full mb-2 p-2 border"
-                value={item.name}
-                disabled={saving}
-                onChange={(e) =>
-                  handleSpecialChange(index, "name", e.target.value)
-                }
-              />
+            {/* Mobile View Single Day */}
+            <div className="lg:hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <DayCard
+                    day={activeTab}
+                    data={attendance[activeTab]}
+                    handleChange={handleChange}
+                    saving={saving}
+                    isMobile
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-              <div className="grid grid-cols-5 gap-3">
-                <input
-                  placeholder="Adults"
-                  className="border p-2"
-                  value={item.adults}
-                  disabled={saving}
-                  onChange={(e) =>
-                    handleSpecialChange(index, "adults", e.target.value)
-                  }
+            {/* Special Programmes Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Special Programmes
+                </h2>
+                <button
+                  onClick={addSpecialField}
+                  className="bg-white border border-gray-200 text-emerald-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-emerald-50 transition-all shadow-sm"
+                >
+                  <Plus size={18} /> Add Special Programme
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {specialFields.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative group"
+                  >
+                    <button
+                      onClick={() => removeSpecialField(index)}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors p-1"
+                    >
+                      <X size={20} />
+                    </button>
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">
+                          Programme Name
+                        </label>
+                        <input
+                          placeholder="e.g. Revival Service"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-gray-800"
+                          value={item.name}
+                          disabled={saving}
+                          onChange={(e) =>
+                            handleSpecialChange(index, "name", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <InputField
+                          label="Adults"
+                          value={item.adults}
+                          onChange={(v) =>
+                            handleSpecialChange(index, "adults", v)
+                          }
+                          disabled={saving}
+                          icon={Users}
+                        />
+                        <InputField
+                          label="Children"
+                          value={item.children}
+                          onChange={(v) =>
+                            handleSpecialChange(index, "children", v)
+                          }
+                          disabled={saving}
+                          icon={Baby}
+                        />
+                        <InputField
+                          label="Offering"
+                          value={item.offering}
+                          onChange={(v) =>
+                            handleSpecialChange(index, "offering", v)
+                          }
+                          disabled={saving}
+                          icon={Coins}
+                        />
+                        <InputField
+                          label="Tithes"
+                          value={item.tithes}
+                          onChange={(v) =>
+                            handleSpecialChange(index, "tithes", v)
+                          }
+                          disabled={saving}
+                          icon={Wallet}
+                        />
+                      </div>
+                      <InputField
+                        label="Newcomers"
+                        value={item.newcomers}
+                        onChange={(v) =>
+                          handleSpecialChange(index, "newcomers", v)
+                        }
+                        disabled={saving}
+                        icon={UserPlus}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Weekly Totals */}
+            <div className="space-y-4 pt-6">
+              <h2 className="text-xl font-bold text-gray-900">Weekly Totals</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <TotalBox
+                  label="Adults"
+                  value={totals.adults}
+                  color="blue"
+                  icon={Users}
                 />
-                <input
-                  placeholder="Children"
-                  className="border p-2"
-                  value={item.children}
-                  disabled={saving}
-                  onChange={(e) =>
-                    handleSpecialChange(index, "children", e.target.value)
-                  }
+                <TotalBox
+                  label="Children"
+                  value={totals.children}
+                  color="purple"
+                  icon={Baby}
                 />
-                <input
-                  placeholder="Offering"
-                  className="border p-2"
-                  value={item.offering}
-                  disabled={saving}
-                  onChange={(e) =>
-                    handleSpecialChange(index, "offering", e.target.value)
-                  }
+                <TotalBox
+                  label="Offering"
+                  value={totals.offering}
+                  color="emerald"
+                  icon={Coins}
+                  prefix="₦"
                 />
-                <input
-                  placeholder="Newcomers"
-                  className="border p-2"
-                  value={item.newcomers}
-                  disabled={saving}
-                  onChange={(e) =>
-                    handleSpecialChange(index, "newcomers", e.target.value)
-                  }
+                <TotalBox
+                  label="Tithes"
+                  value={totals.tithes}
+                  color="amber"
+                  icon={Wallet}
+                  prefix="₦"
                 />
-                <input
-                  placeholder="Tithes"
-                  className="border p-2"
-                  value={item.tithes}
-                  disabled={saving}
-                  onChange={(e) =>
-                    handleSpecialChange(index, "tithes", e.target.value)
-                  }
+                <TotalBox
+                  label="Newcomers"
+                  value={totals.newcomers}
+                  color="rose"
+                  icon={UserPlus}
                 />
               </div>
             </div>
-          ))}
+
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-2xl font-bold shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-3 text-lg"
+            >
+              {saving ? (
+                <Loader2 className="animate-spin" size={24} />
+              ) : (
+                <Save size={24} />
+              )}
+              {saving ? "Saving Records..." : "Submit All Records"}
+            </button>
+          </motion.div>
         </div>
+      </main>
 
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="mt-6 bg-green-600 text-white px-6 py-2 rounded flex items-center gap-2 disabled:opacity-50"
-        >
-          {saving && <Loader2 className="animate-spin" size={18} />}
-          {saving ? "Saving..." : "Submit Attendance"}
-        </button>
+      <MobileBottomNav onOpenSidebar={() => setIsSidebarOpen(true)} />
+    </div>
+  );
+};
 
-        <div className="mt-6 bg-white p-4 rounded shadow">
-          <h2 className="font-bold mb-3">Weekly Totals</h2>
+/** ── Helper UI Components ────────────────────────────────────────────────── */
 
-          <div className="grid grid-cols-5 gap-3 text-center">
-            <div>Adults: {totals.adults}</div>
-            <div>Children: {totals.children}</div>
-            <div>Offering: {totals.offering}</div>
-            <div>Newcomers: {totals.newcomers}</div>
-            <div>Tithes: {totals.tithes}</div>
-          </div>
-        </div>
+const DayCard = ({
+  day,
+  data,
+  idx = 0,
+  handleChange,
+  saving,
+  isMobile = false,
+}) => (
+  <motion.div
+    initial={!isMobile ? { opacity: 0, y: 20 } : {}}
+    animate={!isMobile ? { opacity: 1, y: 0 } : {}}
+    transition={{ delay: idx * 0.1 }}
+    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-emerald-600 space-y-5"
+  >
+    <h3 className="font-bold text-gray-900 text-lg flex items-center justify-between">
+      {day}
+      <Users size={18} className="text-emerald-500 opacity-50" />
+    </h3>
+
+    <div className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4`}>
+      <InputField
+        label="Total Adults"
+        value={data.adults}
+        onChange={(v) => handleChange(day, "adults", v)}
+        disabled={saving}
+        icon={Users}
+      />
+      <InputField
+        label="Total Children"
+        value={data.children}
+        onChange={(v) => handleChange(day, "children", v)}
+        disabled={saving}
+        icon={Baby}
+      />
+      <InputField
+        label="Total Offering"
+        value={data.offering}
+        onChange={(v) => handleChange(day, "offering", v)}
+        disabled={saving}
+        icon={Coins}
+      />
+      <InputField
+        label="Total Tithes"
+        value={data.tithes}
+        onChange={(v) => handleChange(day, "tithes", v)}
+        disabled={saving}
+        icon={Wallet}
+      />
+    </div>
+
+    <InputField
+      label="Total Newcomers"
+      value={data.newcomers}
+      onChange={(v) => handleChange(day, "newcomers", v)}
+      disabled={saving}
+      icon={UserPlus}
+    />
+
+    {/* Placeholder or visual indicator for special note/programme linkage if needed */}
+    <div className="pt-2">
+      <div className="text-[10px] font-black text-gray-300 uppercase tracking-widest text-center border-t border-gray-50 pt-3">
+        Standard Day Record
+      </div>
+    </div>
+  </motion.div>
+);
+
+const InputField = ({ label, value, onChange, disabled, icon: Icon }) => (
+  <div className="space-y-1.5">
+    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">
+      {label}
+    </label>
+    <div className="relative">
+      {Icon && (
+        <Icon
+          size={16}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+        />
+      )}
+      <input
+        type="number"
+        placeholder="0"
+        className={`w-full ${Icon ? "pl-11" : "px-4"} py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all font-semibold text-gray-700`}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  </div>
+);
+
+const TotalBox = ({ label, value, color, icon: Icon, prefix = "" }) => {
+  const colors = {
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    rose: "bg-rose-50 text-rose-600 border-rose-100",
+  };
+
+  return (
+    <div
+      className={`${colors[color]} p-4 rounded-2xl border shadow-sm flex flex-col justify-center items-center text-center`}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <Icon size={14} className="opacity-70" />
+        <span className="text-[10px] font-black uppercase tracking-tighter">
+          {label}
+        </span>
+      </div>
+      <div className="text-xl font-black">
+        {prefix}
+        {Number(value).toLocaleString()}
       </div>
     </div>
   );

@@ -1,7 +1,23 @@
-import Sidebar from "../components/Sidebar";
 import { useState, useEffect } from "react";
-import { Trash2, Plus, RefreshCw, User, Loader2, Save } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Trash2,
+  Plus,
+  RefreshCw,
+  User,
+  Loader2,
+  Save,
+  Menu,
+  Wallet,
+  TrendingUp,
+  Banknote,
+  ArrowUpRight,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { financeAPI, attendanceAPI } from "../services/api";
+import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 
 const Finance = () => {
   const userRole = localStorage.getItem("userRole")?.toLowerCase().trim();
@@ -61,6 +77,8 @@ const Finance = () => {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const userName = localStorage.getItem("userName") || "Admin";
   const [successMsg, setSuccessMsg] = useState("");
 
   // Get current week's Monday as week_starting
@@ -295,234 +313,258 @@ const Finance = () => {
 
   if (loading) {
     return (
-      <div className="flex bg-gray-100 min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-500">
-            <Loader2 className="animate-spin" size={36} />
-            <p className="text-sm">Loading finance data...</p>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-emerald-600">
+          <Loader2 className="animate-spin" size={48} />
+          <p className="text-sm font-medium text-gray-500">
+            Loading finance data...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-      <Sidebar />
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <div className="p-6 w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Finance Tracker
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Week of{" "}
-              {new Date(weekStarting).toLocaleDateString("en-NG", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </p>
+      <main className="flex-1 lg:ml-[250px] pb-24 lg:pb-8 min-w-0">
+        {/* Mobile Header */}
+        <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-gray-100 h-16 flex items-center justify-between px-4">
+          <button onClick={() => setIsSidebarOpen(true)}>
+            <Menu size={24} className="text-gray-600" />
+          </button>
+          <span className="font-bold text-emerald-700 text-lg">Finance</span>
+          <div className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+            {userName[0]?.toUpperCase()}
           </div>
+        </header>
 
-          {isEditable && (
-            <button
-              onClick={syncFromAttendance}
-              disabled={syncing}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60 text-sm font-medium"
-            >
-              {syncing ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <RefreshCw size={16} />
-              )}
-              {syncing ? "Syncing..." : "Sync from Attendance"}
-            </button>
-          )}
-        </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
-            ❌ {error}
-            <button onClick={() => setError(null)} className="ml-3 underline">
-              Dismiss
-            </button>
-          </div>
-        )}
-        {successMsg && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded-lg text-sm">
-            {successMsg}
-          </div>
-        )}
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-green-100 p-5 rounded-xl shadow">
-            <h2 className="text-gray-600 font-semibold text-sm">
-              Total Income
-            </h2>
-            <p className="text-3xl font-bold text-green-700 mt-1">
-              ₦{totalIncome.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-red-100 p-5 rounded-xl shadow">
-            <h2 className="text-gray-600 font-semibold text-sm">
-              Total Expenses
-            </h2>
-            <p className="text-3xl font-bold text-red-700 mt-1">
-              ₦{totalExpenses.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-blue-100 p-5 rounded-xl shadow">
-            <h2 className="text-gray-600 font-semibold text-sm">
-              Balance in Bank
-            </h2>
-            <p className="text-3xl font-bold text-blue-700 mt-1">
-              ₦{balanceInBank.toLocaleString()}
-            </p>
-          </div>
-        </div>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* INCOME SECTION */}
-          <div className="bg-white p-6 rounded-xl shadow">
-            <h2 className="text-lg font-semibold mb-5 text-gray-800">
-              Weekly Income
-            </h2>
-
-            {/* Auto-synced */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1">
-                  <RefreshCw size={12} /> Auto-synced from Attendance
-                </h3>
-                <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-                  Read-only
-                </span>
-              </div>
-              <div className="space-y-3 pl-3 border-l-2 border-blue-200">
-                {Object.entries(autoIncome).map(([category, amount]) => (
-                  <div
-                    key={category}
-                    className="flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="text-gray-700 font-medium text-sm">
-                        {category}
-                      </p>
-                      <p className="text-[10px] text-blue-500 italic">
-                        Synced from weekly attendance
-                      </p>
-                    </div>
-                    <div className="w-32 p-2 bg-blue-50 border border-blue-200 rounded text-right text-sm font-semibold text-blue-700">
-                      ₦{(parseFloat(amount) || 0).toLocaleString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="px-4 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
+          {/* Desktop Header */}
+          <div className="hidden lg:flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Finance Tracker
+              </h1>
+              <p className="text-gray-500 mt-1">
+                Week of{" "}
+                {new Date(weekStarting).toLocaleDateString("en-NG", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
             </div>
-
-            {/* Manual income */}
-            <div className="mb-6">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1">
-                <User size={12} /> Manually Entered
-              </h3>
-              <div className="space-y-3 pl-3 border-l-2 border-gray-200">
-                {manualIncome.map((item, index) => (
-                  <div
-                    key={item.category}
-                    className="flex justify-between items-center"
-                  >
-                    <label className="text-gray-700 font-medium text-sm">
-                      {item.category}
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={item.amount}
-                      onChange={(e) => {
-                        const updated = [...manualIncome];
-                        updated[index].amount = e.target.value;
-                        setManualIncome(updated);
-                      }}
-                      disabled={!isEditable}
-                      className="w-32 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-400 outline-none disabled:bg-gray-100"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Balance Carried Down */}
-            <div className="mb-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <label className="text-gray-700 font-semibold text-sm">
-                  Balance Carried Down
-                </label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={balanceCarriedDown}
-                  onChange={(e) =>
-                    setBalanceCarriedDown(parseFloat(e.target.value) || 0)
-                  }
-                  disabled={!isEditable}
-                  className="w-32 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-400 outline-none disabled:bg-gray-100"
-                />
-              </div>
-            </div>
-
-            {/* Save button */}
             {isEditable && (
               <button
-                onClick={saveManualIncome}
-                disabled={saving}
-                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 text-sm font-medium mb-4"
+                onClick={syncFromAttendance}
+                disabled={syncing}
+                className="flex items-center gap-2 bg-white border border-gray-200 text-blue-600 px-4 py-2 rounded-xl hover:bg-blue-50 transition shadow-sm font-semibold"
               >
-                {saving ? (
-                  <Loader2 size={16} className="animate-spin" />
+                {syncing ? (
+                  <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  <Save size={16} />
+                  <RefreshCw size={18} />
                 )}
-                {saving ? "Saving..." : "Save Income"}
+                {syncing ? "Syncing..." : "Sync Attendance"}
               </button>
             )}
-
-            {/* Total income */}
-            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-700 text-sm">
-                  Total Income
-                </span>
-                <span className="text-xl font-bold text-green-700">
-                  ₦{totalIncome.toLocaleString()}
-                </span>
-              </div>
-            </div>
           </div>
 
-          {/* EXPENSES SECTION */}
-          <div className="bg-white p-6 rounded-xl shadow">
-            <h2 className="text-lg font-semibold mb-4 text-gray-800">
-              Expenses
-            </h2>
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                key="error-alert"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2 font-medium">
+                  <AlertCircle size={18} /> {error}
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="font-bold hover:underline"
+                >
+                  Dismiss
+                </button>
+              </motion.div>
+            )}
+            {successMsg && (
+              <motion.div
+                key="success-alert"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl flex items-center gap-2 font-medium"
+              >
+                <CheckCircle2 size={18} /> {successMsg}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            {/* Add Expense Form */}
-            {isEditable && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="text-sm font-semibold mb-3 text-gray-700">
-                  Add New Expense
-                </h3>
-                <div className="flex gap-2">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <Banknote
+                className="absolute -right-2 -top-2 opacity-10"
+                size={80}
+              />
+              <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
+                Total Income
+              </p>
+              <p className="text-3xl font-bold mt-1">
+                ₦{totalIncome.toLocaleString()}
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-gradient-to-br from-rose-500 to-rose-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <TrendingUp
+                className="absolute -right-2 -top-2 opacity-10"
+                size={80}
+              />
+              <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
+                Total Expenses
+              </p>
+              <p className="text-3xl font-bold mt-1">
+                ₦{totalExpenses.toLocaleString()}
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-br from-blue-500 to-blue-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden"
+            >
+              <Wallet
+                className="absolute -right-2 -top-2 opacity-10"
+                size={80}
+              />
+              <p className="text-white/80 text-xs font-bold uppercase tracking-wider">
+                In Bank
+              </p>
+              <p className="text-3xl font-bold mt-1">
+                ₦{balanceInBank.toLocaleString()}
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* INCOME SECTION */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <h2 className="text-lg font-bold text-gray-900 mb-6">
+                Weekly Income
+              </h2>
+
+              <div className="space-y-6">
+                {/* Auto-synced */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <RefreshCw size={14} className="text-blue-500" />
+                    <span className="text-xs font-black text-blue-500 uppercase tracking-widest">
+                      Attendance Sync
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {Object.entries(autoIncome).map(([category, amount]) => (
+                      <div
+                        key={category}
+                        className="flex justify-between items-center p-3 bg-blue-50/50 border-l-4 border-blue-500 rounded-r-xl"
+                      >
+                        <span className="text-sm font-bold text-gray-700">
+                          {category}
+                        </span>
+                        <span className="font-bold text-blue-700">
+                          ₦{(parseFloat(amount) || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Manual */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <User size={14} className="text-gray-400" />
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                      Manual Entry
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {manualIncome.map((item, index) => (
+                      <div
+                        key={item.category}
+                        className="flex justify-between items-center p-3 bg-gray-50 border-l-4 border-gray-200 rounded-r-xl"
+                      >
+                        <label className="text-sm font-bold text-gray-700">
+                          {item.category}
+                        </label>
+                        <input
+                          type="number"
+                          value={item.amount}
+                          onChange={(e) => {
+                            const updated = [...manualIncome];
+                            updated[index].amount = e.target.value;
+                            setManualIncome(updated);
+                          }}
+                          disabled={!isEditable}
+                          className="w-32 h-10 px-3 bg-white border border-gray-200 rounded-lg text-right text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
+                  <label className="text-sm font-bold text-gray-500">
+                    Carried Down
+                  </label>
+                  <input
+                    type="number"
+                    value={balanceCarriedDown}
+                    onChange={(e) =>
+                      setBalanceCarriedDown(parseFloat(e.target.value) || 0)
+                    }
+                    disabled={!isEditable}
+                    className="w-32 h-10 px-3 bg-gray-50 border border-gray-100 rounded-lg text-right text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                {isEditable && (
+                  <button
+                    onClick={saveManualIncome}
+                    disabled={saving}
+                    className="w-full h-12 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition shadow-lg shadow-emerald-100 disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <Save size={20} />
+                    )}{" "}
+                    Save Income
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* EXPENSES SECTION */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <h2 className="text-lg font-bold text-gray-900 mb-6">Expenses</h2>
+
+              {isEditable && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
                   <select
                     value={newExpenseCategory}
                     onChange={(e) => setNewExpenseCategory(e.target.value)}
-                    className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-red-400 outline-none"
+                    className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500"
                   >
                     <option value="">Select Category</option>
                     {expenseCategoryOptions.map((cat) => (
@@ -531,78 +573,60 @@ const Finance = () => {
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="number"
-                    placeholder="Amount"
-                    value={newExpenseAmount}
-                    onChange={(e) => setNewExpenseAmount(e.target.value)}
-                    className="w-28 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-red-400 outline-none"
-                  />
-                  <button
-                    onClick={handleAddExpense}
-                    className="bg-red-500 text-white px-3 py-2 rounded text-sm hover:bg-red-600 flex items-center gap-1 font-medium"
-                  >
-                    <Plus size={16} /> Add
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Expenses List */}
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {expenses.length > 0 ? (
-                expenses.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-700 text-sm">
-                        {expense.category}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        ₦{parseFloat(expense.amount).toLocaleString()}
-                      </p>
-                    </div>
-                    {isEditable && (
-                      <button
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        className="text-red-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 size={17} />
-                      </button>
-                    )}
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={newExpenseAmount}
+                      onChange={(e) => setNewExpenseAmount(e.target.value)}
+                      className="flex-1 h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                    <button
+                      onClick={handleAddExpense}
+                      className="px-6 bg-rose-500 text-white rounded-lg font-bold hover:bg-rose-600 transition shadow-md shadow-rose-100"
+                    >
+                      Add
+                    </button>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  <p className="text-sm">No expenses recorded this week</p>
                 </div>
               )}
-            </div>
 
-            {/* Total expenses */}
-            <div className="mt-4 bg-red-50 p-3 rounded-lg border border-red-200">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-700 text-sm">
-                  Total Expenses
-                </span>
-                <span className="text-xl font-bold text-red-700">
-                  ₦{totalExpenses.toLocaleString()}
-                </span>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                {expenses.length > 0 ? (
+                  expenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-xl hover:shadow-md transition-shadow"
+                    >
+                      <div>
+                        <p className="font-bold text-gray-800 text-sm">
+                          {expense.category}
+                        </p>
+                        <p className="text-xs text-rose-500 font-bold mt-0.5">
+                          ₦{parseFloat(expense.amount).toLocaleString()}
+                        </p>
+                      </div>
+                      {isEditable && (
+                        <button
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          className="p-2 text-gray-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-400 text-sm font-medium italic">
+                    No expenses this week
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-
-        {/* View Only Message */}
-        {!isEditable && (
-          <div className="mt-6 p-4 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-800 text-sm">
-            💡 You have view-only access. Contact an Admin or Council member to
-            edit finance data.
-          </div>
-        )}
-      </div>
+      </main>
+      <MobileBottomNav onOpenSidebar={() => setIsSidebarOpen(true)} />
     </div>
   );
 };
