@@ -1,24 +1,149 @@
-import Sidebar from "../components/Sidebar";
 import { useState, useEffect } from "react";
-import { Download, Loader2, RefreshCw } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Download,
+  Loader2,
+  RefreshCw,
+  Menu,
+  Wallet,
+  TrendingDown,
+  TrendingUp,
+  Landmark,
+  Users,
+  Calendar,
+  BarChart3,
+  ArrowUpRight,
+} from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import { financeAPI, attendanceAPI } from "../services/api";
 
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+const StatCard = ({
+  icon: Icon,
+  label,
+  value,
+  gradient,
+  delay,
+  prefix = "",
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.4 }}
+    whileHover={{ y: -4 }}
+    className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br ${gradient}`}
+  >
+    <div className="absolute -right-3 -top-3 opacity-10">
+      <Icon size={90} />
+    </div>
+    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm mb-4">
+      <Icon size={20} />
+    </div>
+    <p className="text-2xl lg:text-3xl font-bold">
+      {prefix}
+      {typeof value === "number" ? value.toLocaleString() : value}
+    </p>
+    <p className="text-white/75 text-xs mt-1 font-medium uppercase tracking-wider">
+      {label}
+    </p>
+  </motion.div>
+);
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+const SectionCard = ({
+  title,
+  emoji,
+  children,
+  delay = 0,
+  accentColor = "emerald",
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.4 }}
+    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+  >
+    <div
+      className={`px-6 py-4 border-b border-gray-100 flex items-center gap-3`}
+    >
+      <div className={`w-1 h-6 rounded-full bg-${accentColor}-500`} />
+      <h2 className="text-base font-bold text-gray-900">
+        {emoji} {title}
+      </h2>
+    </div>
+    <div className="overflow-x-auto">{children}</div>
+  </motion.div>
+);
+
+// ─── Table ────────────────────────────────────────────────────────────────────
+const Table = ({
+  headers,
+  rows,
+  headerBg = "bg-emerald-50",
+  headerText = "text-emerald-700",
+  totalRow = null,
+}) => (
+  <table className="w-full min-w-[400px]">
+    <thead>
+      <tr className={headerBg}>
+        {headers.map((h, i) => (
+          <th
+            key={i}
+            className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${headerText}`}
+          >
+            {h}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-50">
+      {rows.map((row, i) => (
+        <tr
+          key={i}
+          className={`hover:bg-gray-50 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
+        >
+          {row.map((cell, j) => (
+            <td
+              key={j}
+              className={`px-6 py-4 text-sm text-gray-700 ${j > 0 ? "text-right font-medium" : ""}`}
+            >
+              {cell}
+            </td>
+          ))}
+        </tr>
+      ))}
+      {totalRow && (
+        <tr className={`${headerBg} font-bold`}>
+          {totalRow.map((cell, j) => (
+            <td
+              key={j}
+              className={`px-6 py-4 text-sm ${headerText} ${j > 0 ? "text-right" : ""}`}
+            >
+              {cell}
+            </td>
+          ))}
+        </tr>
+      )}
+    </tbody>
+  </table>
+);
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
 const Reports = () => {
   const userRole = localStorage.getItem("userRole");
+  const userName = localStorage.getItem("userName") || "Admin";
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Get church schedule (static or from timetable data)
-  const getChurchSchedule = () => {
-    return [
-      { day: "Tuesday", time: "6:00 AM", programme: "Prayers" },
-      { day: "Friday", time: "6:00 AM", programme: "Intercession" },
-      { day: "Sunday", time: "9:00 AM", programme: "Main Service" },
-    ];
-  };
+  const getChurchSchedule = () => [
+    { day: "Tuesday", time: "6:00 AM", programme: "Prayers" },
+    { day: "Friday", time: "6:00 AM", programme: "Intercession" },
+    { day: "Sunday", time: "9:00 AM", programme: "Main Service" },
+  ];
 
-  // Load all report data from backend APIs
   const loadReportData = async () => {
     setIsLoading(true);
     setError(null);
@@ -36,7 +161,6 @@ const Reports = () => {
       const balanceRecords = balanceRes?.data || balanceRes || [];
       const attendanceRecords = attendanceRes?.data || attendanceRes || [];
 
-      // Calculate Finance Summary
       const totalIncome = incomeRecords.reduce(
         (sum, item) => sum + (parseFloat(item.amount) || 0),
         0,
@@ -66,23 +190,18 @@ const Reports = () => {
         balanceInBank,
       };
 
-      // Calculate Attendance Averages
       const standardDays = ["Tuesday", "Friday", "Sunday"];
       const attendanceAggregates = {};
-
       standardDays.forEach((day) => {
         attendanceAggregates[day] = { adultsSum: 0, childrenSum: 0, count: 0 };
       });
-
       attendanceRecords.forEach((record) => {
-        const day = record.day;
-        // Only consider standard days for averages
-        if (standardDays.includes(day)) {
-          attendanceAggregates[day].adultsSum +=
+        if (standardDays.includes(record.day)) {
+          attendanceAggregates[record.day].adultsSum +=
             parseFloat(record.total_adults) || 0;
-          attendanceAggregates[day].childrenSum +=
+          attendanceAggregates[record.day].childrenSum +=
             parseFloat(record.total_children) || 0;
-          attendanceAggregates[day].count++;
+          attendanceAggregates[record.day].count++;
         }
       });
 
@@ -90,55 +209,48 @@ const Reports = () => {
         const { adultsSum, childrenSum, count } = attendanceAggregates[day];
         const adults = count > 0 ? Math.round(adultsSum / count) : 0;
         const children = count > 0 ? Math.round(childrenSum / count) : 0;
-        return {
-          day,
-          adults,
-          children,
-          total: adults + children,
-        };
+        return { day, adults, children, total: adults + children };
       });
 
-      // Get static schedule
-      const schedule = getChurchSchedule();
-
       setReportData({
-        generatedDate: new Date().toLocaleDateString(),
-        schedule,
+        generatedDate: new Date().toLocaleDateString("en-NG", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        schedule: getChurchSchedule(),
         attendance: averagedAttendance,
         finance: financeSummary,
       });
     } catch (err) {
-      console.error("Report Error:", err);
       setError(err.message || "Failed to load report data");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Export to Excel using SheetJS
   const exportToExcel = async () => {
     if (!reportData) {
       alert("Please generate a report first");
       return;
     }
-
     try {
       const XLSX = await import("xlsx");
-
-      // Create workbook
       const wb = XLSX.utils.book_new();
 
-      // Sheet 1: Church Schedule
       const scheduleData = [
         ["CHURCH SCHEDULE"],
         [],
         ["Day", "Time", "Programme"],
         ...reportData.schedule.map((s) => [s.day, s.time, s.programme]),
       ];
-      const scheduleSheet = XLSX.utils.aoa_to_sheet(scheduleData);
-      XLSX.utils.book_append_sheet(wb, scheduleSheet, "Schedule");
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(scheduleData),
+        "Schedule",
+      );
 
-      // Sheet 2: Attendance Summary
       const attendanceData = [
         ["ATTENDANCE SUMMARY"],
         [],
@@ -150,10 +262,12 @@ const Reports = () => {
           a.total,
         ]),
       ];
-      const attendanceSheet = XLSX.utils.aoa_to_sheet(attendanceData);
-      XLSX.utils.book_append_sheet(wb, attendanceSheet, "Attendance");
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(attendanceData),
+        "Attendance",
+      );
 
-      // Sheet 3: Finance Summary
       const financeSummaryData = [
         ["FINANCE SUMMARY"],
         [],
@@ -162,10 +276,12 @@ const Reports = () => {
         ["Balance Carried Down", reportData.finance.carriedDown || 0],
         ["Balance in Bank", reportData.finance.balanceInBank || 0],
       ];
-      const financeSummarySheet = XLSX.utils.aoa_to_sheet(financeSummaryData);
-      XLSX.utils.book_append_sheet(wb, financeSummarySheet, "Finance Summary");
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(financeSummaryData),
+        "Finance Summary",
+      );
 
-      // Sheet 4: Detailed Income
       if (reportData.finance.incomeBreakdown?.length > 0) {
         const incomeData = [
           ["INCOME BREAKDOWN"],
@@ -176,11 +292,13 @@ const Reports = () => {
             item.amount,
           ]),
         ];
-        const incomeSheet = XLSX.utils.aoa_to_sheet(incomeData);
-        XLSX.utils.book_append_sheet(wb, incomeSheet, "Income Details");
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.aoa_to_sheet(incomeData),
+          "Income Details",
+        );
       }
 
-      // Sheet 5: Detailed Expenses
       if (reportData.finance.expensesBreakdown?.length > 0) {
         const expensesData = [
           ["EXPENSES BREAKDOWN"],
@@ -191,12 +309,17 @@ const Reports = () => {
             item.amount,
           ]),
         ];
-        const expensesSheet = XLSX.utils.aoa_to_sheet(expensesData);
-        XLSX.utils.book_append_sheet(wb, expensesSheet, "Expenses Details");
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.aoa_to_sheet(expensesData),
+          "Expenses Details",
+        );
       }
 
-      // Download
-      XLSX.writeFile(wb, `Church_Report_${reportData.generatedDate}.xlsx`);
+      XLSX.writeFile(
+        wb,
+        `Church_Report_${new Date().toLocaleDateString()}.xlsx`,
+      );
     } catch (error) {
       alert("Error exporting to Excel: " + error.message);
     }
@@ -206,244 +329,286 @@ const Reports = () => {
     loadReportData();
   }, []);
 
+  // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex bg-gray-100 min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-500">
-            <Loader2 className="animate-spin" size={36} />
-            <p className="text-sm">Loading report data...</p>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+        <main className="flex-1 lg:ml-[250px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 text-gray-400">
+            <Loader2 className="animate-spin text-emerald-600" size={44} />
+            <p className="text-sm font-medium">Loading report data...</p>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
+  // ── Error ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="flex bg-gray-100 min-h-screen">
-        <Sidebar />
-        <div className="p-6 w-full">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Reports</h1>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+        <main className="flex-1 lg:ml-[250px] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-8 max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BarChart3 size={28} className="text-red-500" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">
+              Failed to Load Report
+            </h3>
+            <p className="text-gray-500 text-sm mb-6">{error}</p>
+            <button
+              onClick={loadReportData}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 mx-auto"
+            >
+              <RefreshCw size={16} /> Try Again
+            </button>
           </div>
-          <div
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-            role="alert"
-          >
-            <strong className="font-bold">Error!</strong>
-            <span className="block sm:inline"> {error}</span>
-            <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
-              <svg
-                onClick={() => setError(null)}
-                className="fill-current h-6 w-6 text-red-500 cursor-pointer"
-                role="button"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-              >
-                <title>Close</title>
-                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-              </svg>
-            </span>
-          </div>
-        </div>
+        </main>
       </div>
     );
   }
 
+  const hasData =
+    reportData?.finance?.totalIncome > 0 ||
+    reportData?.finance?.totalExpenses > 0 ||
+    reportData?.attendance?.some((a) => a.total > 0);
+
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-      <Sidebar />
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      <div className="p-6 w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Comprehensive Reports</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={loadReportData}
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <RefreshCw size={18} />
-              )}
-              Refresh
-            </button>
+      <main className="flex-1 lg:ml-[250px] pb-24 lg:pb-8 min-w-0">
+        {/* ── Mobile Header ──────────────────────────────────────────────── */}
+        <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-gray-100 h-16 flex items-center justify-between px-4">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <Menu size={24} className="text-gray-600" />
+          </button>
+          <span className="font-bold text-emerald-700 text-lg">Reports</span>
+          <div className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+            {userName[0]?.toUpperCase()}
+          </div>
+        </header>
 
-            {(userRole === "admin" || userRole === "council") && (
+        <div className="px-4 lg:px-8 py-6 max-w-7xl mx-auto space-y-6">
+          {/* ── Page Header ────────────────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                Church Reports
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                Generated on {reportData?.generatedDate}
+              </p>
+            </div>
+
+            <div className="flex gap-3 flex-wrap">
               <button
-                onClick={exportToExcel}
-                className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
-                disabled={!reportData}
+                onClick={loadReportData}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium text-sm transition-all shadow-sm"
               >
-                <Download size={18} />
-                Export to Excel
+                <RefreshCw
+                  size={16}
+                  className={isLoading ? "animate-spin" : ""}
+                />
+                Refresh
               </button>
-            )}
-          </div>
-        </div>
 
-        {reportData && (
-          <div className="space-y-6">
-            {/* Church Schedule */}
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h2 className="text-lg font-semibold mb-4">📅 Church Schedule</h2>
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-3 text-left">Day</th>
-                    <th className="border p-3 text-left">Time</th>
-                    <th className="border p-3 text-left">Programme</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.schedule.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="border p-3">{item.day}</td>
-                      <td className="border p-3">{item.time}</td>
-                      <td className="border p-3">{item.programme}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {(userRole === "admin" || userRole === "council") && (
+                <button
+                  onClick={exportToExcel}
+                  disabled={!reportData}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-100 disabled:opacity-60"
+                >
+                  <Download size={16} />
+                  Export to Excel
+                </button>
+              )}
             </div>
+          </motion.div>
 
-            {/* Attendance Summary */}
-            {reportData.attendance.length > 0 && (
-              <div className="bg-white p-6 rounded-xl shadow">
-                <h2 className="text-lg font-semibold mb-4">
-                  👥 Attendance Summary
-                </h2>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border p-3 text-left">Day</th>
-                      <th className="border p-3 text-center">Adults</th>
-                      <th className="border p-3 text-center">Children</th>
-                      <th className="border p-3 text-center">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.attendance.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="border p-3">{item.day}</td>
-                        <td className="border p-3 text-center">
-                          {item.adults}
-                        </td>
-                        <td className="border p-3 text-center">
-                          {item.children}
-                        </td>
-                        <td className="border p-3 text-center font-semibold">
-                          {item.total}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          {/* ── No Data State ──────────────────────────────────────────────── */}
+          {!hasData && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+              <BarChart3 size={64} className="text-gray-200 mx-auto mb-4" />
+              <h3 className="font-bold text-gray-700 text-lg mb-2">
+                No Report Data Yet
+              </h3>
+              <p className="text-gray-400 text-sm max-w-sm mx-auto">
+                Data will appear here once attendance and finance records are
+                added.
+              </p>
+            </div>
+          )}
 
-            {/* Finance Summary */}
-            {reportData.finance && (
-              <>
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="bg-green-100 p-4 rounded-lg border border-green-300">
-                    <p className="text-sm text-gray-600">Total Income</p>
-                    <p className="text-2xl font-bold text-green-700">
-                      ₦{reportData.finance.totalIncome?.toLocaleString() || 0}
-                    </p>
-                  </div>
+          {reportData && (
+            <>
+              {/* ── Finance Stat Cards ───────────────────────────────────── */}
+              <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  icon={Wallet}
+                  label="Total Income"
+                  value={reportData.finance.totalIncome}
+                  gradient="from-emerald-500 to-emerald-700"
+                  delay={0.1}
+                  prefix="₦"
+                />
+                <StatCard
+                  icon={TrendingDown}
+                  label="Total Expenses"
+                  value={reportData.finance.totalExpenses}
+                  gradient="from-red-500 to-red-700"
+                  delay={0.2}
+                  prefix="₦"
+                />
+                <StatCard
+                  icon={ArrowUpRight}
+                  label="Balance Carried"
+                  value={reportData.finance.carriedDown}
+                  gradient="from-amber-500 to-orange-600"
+                  delay={0.3}
+                  prefix="₦"
+                />
+                <StatCard
+                  icon={Landmark}
+                  label="Balance in Bank"
+                  value={reportData.finance.balanceInBank}
+                  gradient="from-blue-500 to-blue-700"
+                  delay={0.4}
+                  prefix="₦"
+                />
+              </section>
 
-                  <div className="bg-red-100 p-4 rounded-lg border border-red-300">
-                    <p className="text-sm text-gray-600">Total Expenses</p>
-                    <p className="text-2xl font-bold text-red-700">
-                      ₦{reportData.finance.totalExpenses?.toLocaleString() || 0}
-                    </p>
-                  </div>
+              {/* ── Church Schedule ──────────────────────────────────────── */}
+              <SectionCard
+                title="Church Schedule"
+                emoji="📅"
+                delay={0.2}
+                accentColor="emerald"
+              >
+                <Table
+                  headers={["Day", "Time", "Programme"]}
+                  rows={reportData.schedule.map((s) => [
+                    s.day,
+                    s.time,
+                    s.programme,
+                  ])}
+                  headerBg="bg-emerald-50"
+                  headerText="text-emerald-700"
+                />
+              </SectionCard>
 
-                  <div className="bg-yellow-100 p-4 rounded-lg border border-yellow-300">
-                    <p className="text-sm text-gray-600">Balance Carried</p>
-                    <p className="text-2xl font-bold text-yellow-700">
-                      ₦{reportData.finance.carriedDown?.toLocaleString() || 0}
-                    </p>
-                  </div>
+              {/* ── Attendance Summary ───────────────────────────────────── */}
+              {reportData.attendance.some((a) => a.total > 0) && (
+                <SectionCard
+                  title="Attendance Summary (Averages)"
+                  emoji="👥"
+                  delay={0.3}
+                  accentColor="blue"
+                >
+                  <Table
+                    headers={["Day", "Adults", "Children", "Total"]}
+                    rows={reportData.attendance.map((a) => [
+                      a.day,
+                      a.adults.toLocaleString(),
+                      a.children.toLocaleString(),
+                      a.total.toLocaleString(),
+                    ])}
+                    headerBg="bg-blue-50"
+                    headerText="text-blue-700"
+                    totalRow={[
+                      "Total",
+                      reportData.attendance
+                        .reduce((s, a) => s + a.adults, 0)
+                        .toLocaleString(),
+                      reportData.attendance
+                        .reduce((s, a) => s + a.children, 0)
+                        .toLocaleString(),
+                      reportData.attendance
+                        .reduce((s, a) => s + a.total, 0)
+                        .toLocaleString(),
+                    ]}
+                  />
+                </SectionCard>
+              )}
 
-                  <div className="bg-blue-100 p-4 rounded-lg border border-blue-300">
-                    <p className="text-sm text-gray-600">Balance in Bank</p>
-                    <p className="text-2xl font-bold text-blue-700">
-                      ₦{reportData.finance.balanceInBank?.toLocaleString() || 0}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Income Breakdown */}
+              {/* ── Finance Breakdown ────────────────────────────────────── */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Income */}
                 {reportData.finance.incomeBreakdown?.length > 0 && (
-                  <div className="bg-white p-6 rounded-xl shadow">
-                    <h2 className="text-lg font-semibold mb-4">
-                      💰 Income Breakdown
-                    </h2>
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border p-3 text-left">Category</th>
-                          <th className="border p-3 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reportData.finance.incomeBreakdown.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="border p-3">{item.category}</td>
-                            <td className="border p-3 text-right">
-                              ₦{parseFloat(item.amount || 0).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <SectionCard
+                    title="Income Breakdown"
+                    emoji="💰"
+                    delay={0.4}
+                    accentColor="emerald"
+                  >
+                    <Table
+                      headers={["Category", "Amount"]}
+                      rows={reportData.finance.incomeBreakdown.map((item) => [
+                        item.category,
+                        `₦${item.amount.toLocaleString()}`,
+                      ])}
+                      headerBg="bg-emerald-50"
+                      headerText="text-emerald-700"
+                      totalRow={[
+                        "Total Income",
+                        `₦${reportData.finance.totalIncome.toLocaleString()}`,
+                      ]}
+                    />
+                  </SectionCard>
                 )}
 
-                {/* Expenses Breakdown */}
+                {/* Expenses */}
                 {reportData.finance.expensesBreakdown?.length > 0 && (
-                  <div className="bg-white p-6 rounded-xl shadow">
-                    <h2 className="text-lg font-semibold mb-4">
-                      📊 Expenses Breakdown
-                    </h2>
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border p-3 text-left">Category</th>
-                          <th className="border p-3 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reportData.finance.expensesBreakdown.map(
-                          (item, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50">
-                              <td className="border p-3">{item.category}</td>
-                              <td className="border p-3 text-right">
-                                ₦{parseFloat(item.amount || 0).toLocaleString()}
-                              </td>
-                            </tr>
-                          ),
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                  <SectionCard
+                    title="Expenses Breakdown"
+                    emoji="📊"
+                    delay={0.5}
+                    accentColor="red"
+                  >
+                    <Table
+                      headers={["Category", "Amount"]}
+                      rows={reportData.finance.expensesBreakdown.map((item) => [
+                        item.category,
+                        `₦${item.amount.toLocaleString()}`,
+                      ])}
+                      headerBg="bg-red-50"
+                      headerText="text-red-700"
+                      totalRow={[
+                        "Total Expenses",
+                        `₦${reportData.finance.totalExpenses.toLocaleString()}`,
+                      ]}
+                    />
+                  </SectionCard>
                 )}
-              </>
-            )}
+              </div>
 
-            {/* Generated Info */}
-            <div className="text-sm text-gray-500 text-center mt-6">
-              Report generated on: {reportData.generatedDate}
-            </div>
-          </div>
-        )}
-      </div>
+              {/* ── Footer ───────────────────────────────────────────────── */}
+              <p className="text-center text-xs text-gray-400 pb-4">
+                Report generated on {reportData.generatedDate} • To the glory of
+                God
+              </p>
+            </>
+          )}
+        </div>
+      </main>
+
+      <MobileBottomNav onOpenSidebar={() => setIsSidebarOpen(true)} />
     </div>
   );
 };
