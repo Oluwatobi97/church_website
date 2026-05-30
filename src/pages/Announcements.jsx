@@ -26,6 +26,8 @@ const Announcements = () => {
   const userName = localStorage.getItem("userName") || "Admin";
   const isEditable = userRole === "admin" || userRole === "council";
   const isAdmin = userRole === "admin";
+  const isLoggedIn = !!localStorage.getItem("accessToken");
+  const showSidebar = isLoggedIn;
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
@@ -153,11 +155,13 @@ const Announcements = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
-        <main className="flex-1 lg:ml-[250px] flex items-center justify-center">
+        {showSidebar && (
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+          />
+        )}
+        <main className={`flex-1 ${showSidebar ? "lg:ml-[250px]" : ""} flex items-center justify-center`}>
           <div className="flex flex-col items-center gap-4 text-gray-400">
             <Loader2 className="animate-spin text-amber-500" size={44} />
             <p className="text-sm font-medium">Loading announcements...</p>
@@ -169,9 +173,11 @@ const Announcements = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      {showSidebar && (
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      )}
 
-      <main className="flex-1 lg:ml-[250px] pb-24 lg:pb-8 min-w-0">
+      <main className={`flex-1 ${showSidebar ? "lg:ml-[250px]" : ""} pb-24 lg:pb-8 min-w-0`}>
         {/* ── Mobile Header ──────────────────────────────────────────────── */}
         <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-gray-100 h-16 flex items-center justify-between px-4">
           <button
@@ -183,8 +189,16 @@ const Announcements = () => {
           <span className="font-bold text-amber-600 text-lg">
             Announcements
           </span>
-          <div className="w-9 h-9 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-            {userName[0]?.toUpperCase()}
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-700 shadow-sm hover:bg-amber-50 transition"
+            >
+              Home
+            </Link>
+            <div className="w-9 h-9 bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              {userName[0]?.toUpperCase()}
+            </div>
           </div>
         </header>
 
@@ -218,10 +232,10 @@ const Announcements = () => {
               />
             </div>
 
-            <div className="mt-6 text-center lg:text-left">
+            <div className="mt-8 flex justify-center lg:justify-start">
               <Link
                 to="/"
-                className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition"
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-black/10 hover:bg-white/20 transition"
               >
                 ← Back to Home
               </Link>
@@ -574,7 +588,9 @@ const Announcements = () => {
         )}
       </AnimatePresence>
 
-      <MobileBottomNav onOpenSidebar={() => setIsSidebarOpen(true)} />
+      {showSidebar && (
+        <MobileBottomNav onOpenSidebar={() => setIsSidebarOpen(true)} />
+      )}
     </div>
   );
 };

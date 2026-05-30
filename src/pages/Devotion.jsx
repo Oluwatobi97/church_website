@@ -50,7 +50,9 @@ const PublicNav = ({ navigate }) => (
 const Devotion = () => {
   const navigate = useNavigate();
   const userRole = localStorage.getItem("userRole")?.toLowerCase();
-  const isLoggedIn = !!localStorage.getItem("token");
+  const isLoggedIn = !!localStorage.getItem("accessToken");
+  const isAdmin = userRole === "admin";
+  const showSidebar = isLoggedIn && isAdmin;
   const isEditable = userRole === "admin" || userRole === "council";
   const userName = localStorage.getItem("userName") || "Admin";
 
@@ -132,7 +134,7 @@ const Devotion = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {isLoggedIn && (
+      {showSidebar && (
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -140,9 +142,9 @@ const Devotion = () => {
       )}
 
       <main
-        className={`flex-1 ${isLoggedIn ? "lg:ml-[250px]" : ""} pb-24 lg:pb-8 min-w-0`}
+        className={`flex-1 ${showSidebar ? "lg:ml-[250px]" : ""} pb-24 lg:pb-8 min-w-0`}
       >
-        {isLoggedIn ? (
+        {showSidebar ? (
           <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-gray-100 h-16 flex items-center justify-between px-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -151,9 +153,27 @@ const Devotion = () => {
               <Menu size={24} className="text-gray-600" />
             </button>
             <span className="font-bold text-emerald-700 text-lg">Devotion</span>
-            <div className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {userName[0]?.toUpperCase()}
+            <div className="flex items-center gap-2">
+              <Link
+                to="/"
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-50 transition"
+              >
+                Home
+              </Link>
+              <div className="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                {userName[0]?.toUpperCase()}
+              </div>
             </div>
+          </header>
+        ) : isLoggedIn ? (
+          <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-gray-100 h-16 flex items-center justify-between px-4">
+            <span className="font-bold text-emerald-700 text-lg">Devotion</span>
+            <Link
+              to="/"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-50 transition"
+            >
+              Home
+            </Link>
           </header>
         ) : (
           <PublicNav navigate={navigate} />
@@ -197,10 +217,10 @@ const Devotion = () => {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center lg:justify-start">
+          <div className="mt-8 flex justify-center lg:justify-start">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-emerald-700 font-semibold hover:text-emerald-900 transition"
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-5 py-3 text-sm font-semibold text-emerald-800 shadow-lg shadow-emerald-200/30 hover:bg-white transition"
             >
               ← Back to Home
             </Link>
@@ -496,7 +516,7 @@ const Devotion = () => {
         </AnimatePresence>
       </main>
 
-      {isLoggedIn && (
+      {showSidebar && (
         <MobileBottomNav onOpenSidebar={() => setIsSidebarOpen(true)} />
       )}
     </div>
