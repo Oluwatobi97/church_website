@@ -78,7 +78,7 @@ const Home = () => {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
           <Link to="/" className="text-xl font-bold">
-            Church
+            Foursquare
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
@@ -183,7 +183,7 @@ const Home = () => {
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            All You Need <br /> is Living Worship
+            Foursquare Gospel Church <br /> Yotomi Golden Estate A.K.A Mary Land
           </h1>
 
           <p className="max-w-2xl text-gray-200 mb-8">
