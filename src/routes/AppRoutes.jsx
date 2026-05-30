@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
+import Signup from "../pages/Signup";
 import Dashboard from "../pages/Dashboard";
 import Devotion from "../pages/Devotion";
 import Timetable from "../pages/Timetable";
@@ -26,6 +27,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/devotion" element={<Devotion />} />
         <Route path="/daily-devotion" element={<Devotion />} />
         <Route path="/announcements" element={<Announcements />} />

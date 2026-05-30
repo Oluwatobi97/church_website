@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+void motion;
 import {
   Menu,
   Plus,
@@ -214,6 +216,15 @@ const Announcements = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-white text-gray-700 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
               />
+            </div>
+
+            <div className="mt-6 text-center lg:text-left">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition"
+              >
+                ← Back to Home
+              </Link>
             </div>
           </motion.div>
 

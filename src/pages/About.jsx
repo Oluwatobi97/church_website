@@ -35,12 +35,18 @@ const About = () => {
           </div>
         </div>
 
-        <div className="mt-14 text-center">
+        <div className="mt-14 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             to="/contact"
             className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-8 py-3 text-white hover:bg-emerald-700 transition"
           >
             Contact Us
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-full border border-emerald-600 px-8 py-3 text-emerald-600 hover:bg-emerald-50 transition"
+          >
+            Back to Home
           </Link>
         </div>
       </div>

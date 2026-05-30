@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+void motion;
 import {
   Menu,
   Plus,
@@ -18,6 +19,33 @@ import {
 import Sidebar from "../components/Sidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
 import { saveToHistory } from "../utils/helpers.js";
+
+const buildDevotion = (formData, userName) => ({
+  ...formData,
+  id: `devotion-${Math.random().toString(36).slice(2, 10)}`,
+  created_by_name: userName,
+});
+
+// Public Navbar (declared outside component to avoid recreation during render)
+const PublicNav = ({ navigate }) => (
+  <nav className="h-16 bg-white border-b border-gray-100 px-4 flex items-center justify-between sticky top-0 z-50">
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
+        <BookOpen size={20} />
+      </div>
+      <span className="font-bold text-gray-900 text-lg tracking-tight">
+        Church<span className="text-emerald-600">Connect</span>
+      </span>
+    </div>
+    <button
+      onClick={() => navigate("/login")}
+      className="flex items-center gap-2 text-emerald-600 font-bold hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all"
+    >
+      <LogIn size={18} />
+      Login
+    </button>
+  </nav>
+);
 
 const Devotion = () => {
   const navigate = useNavigate();
@@ -66,11 +94,7 @@ const Devotion = () => {
       );
       saveToHistory("Devotion", "edited", `Edited devotion: ${formData.title}`);
     } else {
-      const newDevotion = {
-        ...formData,
-        id: Date.now(),
-        created_by_name: userName,
-      };
+      const newDevotion = buildDevotion(formData, userName);
       setDevotions([newDevotion, ...devotions]);
       saveToHistory("Devotion", "added", `Added devotion: ${formData.title}`);
     }
@@ -106,27 +130,6 @@ const Devotion = () => {
       d.content.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Public Navbar
-  const PublicNav = () => (
-    <nav className="h-16 bg-white border-b border-gray-100 px-4 flex items-center justify-between sticky top-0 z-50">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
-          <BookOpen size={20} />
-        </div>
-        <span className="font-bold text-gray-900 text-lg tracking-tight">
-          Church<span className="text-emerald-600">Connect</span>
-        </span>
-      </div>
-      <button
-        onClick={() => navigate("/login")}
-        className="flex items-center gap-2 text-emerald-600 font-bold hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all"
-      >
-        <LogIn size={18} />
-        Login
-      </button>
-    </nav>
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {isLoggedIn && (
@@ -153,7 +156,7 @@ const Devotion = () => {
             </div>
           </header>
         ) : (
-          <PublicNav />
+          <PublicNav navigate={navigate} />
         )}
 
         {/* Header Banner */}
@@ -192,6 +195,15 @@ const Devotion = () => {
                 className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white shadow-xl border-none focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-gray-700"
               />
             </div>
+          </div>
+
+          <div className="mt-6 flex justify-center lg:justify-start">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-emerald-700 font-semibold hover:text-emerald-900 transition"
+            >
+              ← Back to Home
+            </Link>
           </div>
 
           {isEditable && (
