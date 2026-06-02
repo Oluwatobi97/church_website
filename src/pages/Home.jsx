@@ -1,29 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { devotionAPI, announcementAPI } from "../services/api";
-import { Play, Menu, X, Clock, MapPin } from "lucide-react";
+import { Play, Clock, MapPin } from "lucide-react";
 
 const Home = () => {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [devotions, setDevotions] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingDevotions, setLoadingDevotions] = useState(true);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
+  // PublicLayout handles navbar scroll styles; no local scroll handling required.
+  useEffect(() => {}, []);
 
   useEffect(() => {
     const loadDevotions = async () => {
@@ -63,111 +51,8 @@ const Home = () => {
     loadAnnouncements();
   }, []);
 
-  const navLinkClass = scrolled
-    ? "text-gray-800 hover:text-emerald-600"
-    : "text-white hover:text-emerald-200";
-
   return (
     <div className="bg-white">
-      <nav
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white text-gray-800 shadow-md"
-            : "bg-transparent text-white"
-        }`}
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-          <Link to="/" className="text-xl font-bold">
-            Foursquare
-          </Link>
-
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className={navLinkClass}>
-              Home
-            </Link>
-            <Link to="/daily-devotion" className={navLinkClass}>
-              Daily Devotion
-            </Link>
-            <Link to="/announcements" className={navLinkClass}>
-              Announcements
-            </Link>
-            <Link to="/contact" className={navLinkClass}>
-              Contact
-            </Link>
-            <Link to="/about" className={navLinkClass}>
-              About
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="hidden md:inline-flex bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"
-            >
-              Login
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              className="md:hidden p-2 rounded-lg border border-white/40 bg-white/10 text-current"
-              aria-label="Toggle menu"
-            >
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-
-        {menuOpen && (
-          <div className="md:hidden bg-white shadow-lg">
-            <div className="flex flex-col px-6 py-4 space-y-3">
-              <Link
-                to="/"
-                onClick={() => setMenuOpen(false)}
-                className="text-gray-800 font-medium"
-              >
-                Home
-              </Link>
-              <Link
-                to="/daily-devotion"
-                onClick={() => setMenuOpen(false)}
-                className="text-gray-800 font-medium"
-              >
-                Daily Devotion
-              </Link>
-              <Link
-                to="/announcements"
-                onClick={() => setMenuOpen(false)}
-                className="text-gray-800 font-medium"
-              >
-                Announcements
-              </Link>
-              <Link
-                to="/contact"
-                onClick={() => setMenuOpen(false)}
-                className="text-gray-800 font-medium"
-              >
-                Contact
-              </Link>
-              <Link
-                to="/about"
-                onClick={() => setMenuOpen(false)}
-                className="text-gray-800 font-medium"
-              >
-                About
-              </Link>
-              <Link
-                to="/login"
-                onClick={() => setMenuOpen(false)}
-                className="inline-flex justify-center bg-emerald-600 text-white px-4 py-2 rounded-lg"
-              >
-                Login
-              </Link>
-            </div>
-          </div>
-        )}
-      </nav>
-
       <div className="relative h-[90vh]">
         <img
           src="https://images.unsplash.com/photo-1507692049790-de58290a4334"
@@ -209,7 +94,7 @@ const Home = () => {
         </div>
       </div>
 
-      <main className="pt-28">
+      <main className="pt-8">
         <section className="py-20 px-6 text-center">
           <h2 className="text-3xl font-bold mb-4">
             A Church that loves God and people
@@ -426,55 +311,6 @@ const Home = () => {
             >
               View All Announcements
             </Link>
-          </div>
-        </section>
-
-        <section className="py-20 px-6 bg-emerald-950 text-white">
-          <div className="max-w-7xl mx-auto grid gap-10 md:grid-cols-3">
-            <div>
-              <h3 className="text-xl font-bold mb-4">Church</h3>
-              <p className="text-gray-300">
-                A welcoming place of worship where faith, hope, and love grow.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-bold mb-4">Quick Links</h3>
-              <div className="space-y-2 text-gray-300">
-                <Link to="/" className="block hover:text-white">
-                  Home
-                </Link>
-                <Link to="/devotion" className="block hover:text-white">
-                  Devotion
-                </Link>
-                <Link to="/announcements" className="block hover:text-white">
-                  Announcements
-                </Link>
-                <Link to="/about" className="block hover:text-white">
-                  About
-                </Link>
-                <Link to="/contact" className="block hover:text-white">
-                  Contact
-                </Link>
-                <Link to="/login" className="block hover:text-white">
-                  Login
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-bold mb-4">Contact</h3>
-              <p className="text-gray-300">123 Church Street, City</p>
-              <p className="text-gray-300 mt-2">Phone: (123) 456-7890</p>
-              <div className="flex items-center gap-2 mt-4 text-gray-300">
-                <MapPin size={18} />
-                <span>Connect with us anytime</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 border-t border-white/10 pt-6 text-center text-sm text-gray-400">
-            © 2026 Church. All rights reserved.
           </div>
         </section>
       </main>
