@@ -12,76 +12,43 @@ import Finance from "../pages/Finance";
 import Reports from "../pages/Reports";
 import About from "../pages/About";
 import Contact from "../pages/Contact";
-
-const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
+import PublicLayout from "../components/layouts/PublicLayout";
+import DashboardLayout from "../components/layouts/DashboardLayout";
+import DevotionPublic from "../pages/public/DevotionPublic";
+import AnnouncementsPublic from "../pages/public/AnnouncementsPublic";
+import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/devotion" element={<DevotionPublic />} />
+          <Route
+            path="/daily-devotion"
+            element={<Navigate to="/devotion" replace />}
+          />
+          <Route path="/announcements" element={<AnnouncementsPublic />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+        </Route>
+
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/devotion" element={<Devotion />} />
-        <Route path="/daily-devotion" element={<Devotion />} />
-        <Route path="/announcements" element={<Announcements />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/attendance"
-          element={
-            <ProtectedRoute>
-              <Attendance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance"
-          element={
-            <ProtectedRoute>
-              <Finance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/timetable"
-          element={
-            <ProtectedRoute>
-              <Timetable />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute>
-              <History />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/devotion" element={<Devotion />} />
+          <Route path="/dashboard/announcements" element={<Announcements />} />
+          <Route path="/dashboard/attendance" element={<Attendance />} />
+          <Route path="/dashboard/finance" element={<Finance />} />
+          <Route path="/dashboard/timetable" element={<Timetable />} />
+          <Route path="/dashboard/history" element={<History />} />
+          <Route path="/dashboard/reports" element={<Reports />} />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
