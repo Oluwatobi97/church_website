@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { NavLink, Link, useNavigate, Outlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
@@ -14,7 +14,6 @@ const navLinks = [
 const PublicNavbar = () => {
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
-  const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
 
   const handleNavigate = (to) => {
     navigate(to);
@@ -53,10 +52,10 @@ const PublicNavbar = () => {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(isLoggedIn ? "/dashboard" : "/login")}
+            onClick={() => navigate("/login")}
             className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
           >
-            {isLoggedIn ? "Go to Dashboard" : "LOGIN"}
+            LOGIN
           </button>
 
           <button

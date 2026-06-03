@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -64,7 +64,7 @@ const ServiceCard = ({ day, time, programme, delay }) => (
 );
 
 // ─── Devotion Card ────────────────────────────────────────────────────────
-const DevotionCard = ({ devotion, delay }) => (
+const DevotionCard = ({ devotion, delay, currentTime }) => (
   <motion.div
     initial={{ opacity: 0, y: 16 }}
     whileInView={{ opacity: 1, y: 0 }}
@@ -79,7 +79,7 @@ const DevotionCard = ({ devotion, delay }) => (
         <BookOpen size={14} className="text-emerald-600" />
         <span className="text-xs text-emerald-700 bg-emerald-50 rounded-full px-3 py-1 font-semibold">
           {new Date(
-            devotion.date || devotion.createdAt || Date.now(),
+            devotion.date || devotion.createdAt || currentTime,
           ).toLocaleDateString("en-NG", {
             month: "short",
             day: "numeric",
@@ -104,7 +104,7 @@ const DevotionCard = ({ devotion, delay }) => (
 );
 
 // ─── Announcement Card ────────────────────────────────────────────────────
-const AnnouncementCard = ({ announcement, delay }) => (
+const AnnouncementCard = ({ announcement, delay, currentTime }) => (
   <motion.div
     initial={{ opacity: 0, x: -16 }}
     whileInView={{ opacity: 1, x: 0 }}
@@ -121,7 +121,7 @@ const AnnouncementCard = ({ announcement, delay }) => (
       </div>
       <span className="text-xs text-gray-400 shrink-0">
         {new Date(
-          announcement.date || announcement.createdAt || Date.now(),
+          announcement.date || announcement.createdAt || currentTime,
         ).toLocaleDateString("en-NG", {
           month: "short",
           day: "numeric",
@@ -144,6 +144,7 @@ const Home = () => {
   const [loadingDevotions, setLoadingDevotions] = useState(true);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const navigate = useNavigate();
+  const currentTime = useMemo(() => Date.now(), []);
 
   useEffect(() => {
     const loadDevotions = async () => {
@@ -397,6 +398,7 @@ const Home = () => {
                         key={devotion.id || i}
                         devotion={devotion}
                         delay={i * 0.1}
+                        currentTime={currentTime}
                       />
                     ))
                   : null}
@@ -451,6 +453,7 @@ const Home = () => {
                         key={announcement.id || i}
                         announcement={announcement}
                         delay={i * 0.1}
+                        currentTime={currentTime}
                       />
                     ))
                   : null}
