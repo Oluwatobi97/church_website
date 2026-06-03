@@ -14,15 +14,7 @@ const navLinks = [
 const PublicNavbar = () => {
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
-  const [hasScrolled, setHasScrolled] = useState(false);
   const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
-
-  useEffect(() => {
-    const handleScroll = () => setHasScrolled(window.scrollY > 50);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleNavigate = (to) => {
     navigate(to);
@@ -30,21 +22,17 @@ const PublicNavbar = () => {
   };
 
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        hasScrolled
-          ? "bg-white shadow-md text-gray-800"
-          : "bg-transparent text-white"
-      }`}
-    >
+    <header className="fixed inset-x-0 top-0 z-50 bg-white shadow-sm text-gray-800">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          onClick={() => handleNavigate("/")}
-          className="font-bold text-emerald-700 text-xl tracking-tight"
-        >
-          Church
-        </button>
+        <div className="flex items-center gap-3 text-emerald-700">
+          <button
+            type="button"
+            onClick={() => handleNavigate("/")}
+            className="font-bold text-xl tracking-tight"
+          >
+            Church
+          </button>
+        </div>
 
         <nav className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
@@ -66,19 +54,15 @@ const PublicNavbar = () => {
           <button
             type="button"
             onClick={() => navigate(isLoggedIn ? "/dashboard" : "/login")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              hasScrolled
-                ? "bg-emerald-600 text-white"
-                : "bg-emerald-500 text-white"
-            }`}
+            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
           >
-            {isLoggedIn ? "Go to Dashboard" : "Login"}
+            {isLoggedIn ? "Go to Dashboard" : "LOGIN"}
           </button>
 
           <button
             type="button"
             onClick={() => setShowMenu((current) => !current)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shadow-lg shadow-black/10 transition hover:bg-white/20 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-800 shadow-lg shadow-black/10 transition hover:bg-gray-200 md:hidden"
             aria-label="Toggle navigation"
           >
             {showMenu ? <X size={20} /> : <Menu size={20} />}
