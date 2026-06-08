@@ -10,29 +10,38 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const distPath = path.join(__dirname, 'dist');
 
-// Check if dist folder exists
-if (!fs.existsSync(distPath)) {
-  console.error('❌ ERROR: dist/ folder not found!');
-  console.error('Make sure to run "npm run build" before starting the server');
-  process.exit(1);
-}
+console.log(`🚀 Starting server...`);
+console.log(`📁 Current directory: ${__dirname}`);
+console.log(`📁 Dist path: ${distPath}`);
+console.log(`📁 Dist exists: ${fs.existsSync(distPath)}`);
 
 // Serve static files from dist directory
-app.use(express.static(distPath));
+app.use(express.static(distPath, { 
+  maxAge: '1h',
+  etag: false 
+}));
+
+// Logging middleware to debug requests
+app.use((req, res, next) => {
+  console.log(`📍 Request: ${req.method} ${req.url}`);
+  next();
+});
 
 // SPA history API fallback - serve index.html for all routes
 app.get('*', (req, res) => {
   const indexPath = path.join(distPath, 'index.html');
+  console.log(`🔄 Fallback: serving ${indexPath}`);
+  console.log(`📄 Index.html exists: ${fs.existsSync(indexPath)}`);
   
-  if (!fs.existsSync(indexPath)) {
-    console.error('❌ ERROR: dist/index.html not found!');
-    return res.status(404).send('Build not completed. Please rebuild.');
-  }
-  
-  res.sendFile(indexPath);
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error(`❌ Error sending file: ${err.message}`);
+      res.status(404).send('index.html not found');
+    }
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`✅ React app server running on port ${PORT}`);
-  console.log(`📁 Serving from: ${distPath}`);
+  console.log(`🌐 Server ready at http://localhost:${PORT}`);
 });
